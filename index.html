@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard Triage Pronto Soccorso</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f4f6f8;
+            color: #1f2937;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #1e40af;
+        }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 25px;
+            max-width: 1200px;
+            margin: auto;
+        }
+
+        .left,
+        .right {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .left {
+            flex: 1;
+            min-width: 350px;
+        }
+
+        .right {
+            flex: 1.2;
+            min-width: 500px;
+        }
+
+        .alert {
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            font-weight: bold;
+            color: #fff;
+            background: #ef4444;
+            text-align: center;
+            display: none;
+            animation: flash 1s infinite;
+        }
+
+        @keyframes flash {
+
+            0%,
+            50%,
+            100% {
+                opacity: 1;
+            }
+
+            25%,
+            75% {
+                opacity: 0.3;
+            }
+        }
+
+        .form {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .form input {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #d1d5db;
+        }
+
+        .form button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            background: #2563eb;
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .form button:hover {
+            background: #1e40af;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            text-align: center;
+            padding: 10px;
+            font-size: 14px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        th {
+            background: #f3f4f6;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        tr.low td {
+            background: #d1fae5;
+        }
+
+        tr.medium td {
+            background: #fef3c7;
+        }
+
+        tr.high td {
+            background: #fee2e2;
+        }
+
+        .remove-btn {
+            padding: 6px 12px;
+            background: #ef4444;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+
+        .remove-btn:hover {
+            background: #b91c1c;
+        }
+
+        .info {
+            margin-top: 15px;
+            font-size: 13px;
+            color: #6b7280;
+            text-align: center;
+        }
+
+        .filtro {
+            margin-bottom: 15px;
+        }
+
+        .filtro select {
+            padding: 8px;
+            border-radius: 8px;
+            border: 1px solid #d1d5db;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Dashboard Triage Pronto Soccorso</h1>
+    <div class="container">
+        <div class="left">
+            <div class="alert" id="alertCritico">⚠ Attenzione! Paziente critico!</div>
+            <div class="form">
+                <input type="text" id="nome" placeholder="Nome paziente">
+                <input type="number" id="gravita" placeholder="Gravità (0–10)" min="0" max="10">
+                <button onclick="aggiungiPaziente()">Aggiungi</button>
+            </div>
+            <div class="filtro">
+                Mostra:
+                <select id="filtro" onchange="aggiornaSistema()">
+                    <option value="tutti">Tutti</option>
+                    <option value="critici">Critici</option>
+                    <option value="alta">Gravità ≥ 7</option>
+                </select>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Nome</th>
+                        <th>Gravità</th>
+                        <th>Attesa</th>
+                        <th>Priorità</th>
+                        <th>Azioni</th>
+                    </tr>
+                </thead>
+                <tbody id="listaPazienti"></tbody>
+            </table>
+            <div class="info">⏱ Tempo scorre automaticamente, lista ordinata per priorità.</div>
+        </div>
+    </div>
+
+    <script>
+        let pazienti = [
+        { id: 1, nome: "Luca Rossi", gravita: 6, oraArrivo: Date.now() - 2 * 60000 },
+        { id: 2, nome: "Maria Bianchi", gravita: 4, oraArrivo: Date.now() - 5 * 60000 },
+        { id: 3, nome: "Giovanni Verdi", gravita: 5, oraArrivo: Date.now() - 1 * 60000 },
+        { id: 4, nome: "Elena Neri", gravita: 3, oraArrivo: Date.now() - 10 * 60000 },
+        { id: 5, nome: "Marco Gialli", gravita: 7, oraArrivo: Date.now() - 1 * 60000 },
+        { id: 6, nome: "Sara Blu", gravita: 4, oraArrivo: Date.now() - 3 * 60000 },
+        { id: 7, nome: "Antonio Viola", gravita: 5, oraArrivo: Date.now() - 6 * 60000 },
+        { id: 8, nome: "Francesca Rosa", gravita: 2, oraArrivo: Date.now() - 8 * 60000 },
+        { id: 9, nome: "Davide Arancio", gravita: 6, oraArrivo: Date.now() - 0.5 * 60000 },
+        { id: 10, nome: "Chiara Celeste", gravita: 1, oraArrivo: Date.now() - 12 * 60000 }
+    ];
+
+
+        function calcolaPriorita(G, tempo) {
+            const K = 100,
+                S = 10,
+                b = 0.3,
+                m = 1;
+            return K / (1 + Math.exp(-b * (G + m * tempo - S)));
+        }
+
+        function aggiungiPaziente() {
+            const nome = document.getElementById("nome").value.trim();
+            const gravita = parseFloat(document.getElementById("gravita").value);
+            if (!nome || isNaN(gravita)) {
+                alert("Inserisci nome e gravità valida (0-10)");
+                return;
+            }
+            pazienti.push({
+                id: Date.now(),
+                nome,
+                gravita,
+                oraArrivo: Date.now(),
+                priorita: 0
+            });
+            document.getElementById("nome").value = "";
+            document.getElementById("gravita").value = "";
+        }
+
+        function rimuoviPaziente(id) {
+            pazienti = pazienti.filter(p => p.id !== id);
+            aggiornaSistema();
+        }
+
+        function aggiornaGravita(id, val) {
+            const p = pazienti.find(x => x.id === id);
+            if (p) p.gravita = parseFloat(val);
+        }
+
+        function aggiornaSistema() {
+            const ora = Date.now();
+            const filtro = document.getElementById("filtro").value;
+            let critico = false;
+            let listaFiltrata = [];
+            pazienti.forEach(p => {
+                p.tempo = (ora - p.oraArrivo) / 60000;
+                p.priorita = calcolaPriorita(p.gravita, p.tempo);
+                if (p.priorita > 90) critico = true;
+                if (filtro === "tutti" || (filtro === "critici" && p.priorita > 90) || (filtro === "alta" && p.gravita >= 7)) listaFiltrata.push(p);
+            });
+            listaFiltrata.sort((a, b) => b.priorita - a.priorita);
+            aggiornaTabella(listaFiltrata);
+            mostraAlert(critico);
+        }
+
+        function aggiornaTabella(lista) {
+            const tbody = document.getElementById("listaPazienti");
+            tbody.innerHTML = "";
+            lista.forEach((p, i) => {
+                let c = "low";
+                if (p.priorita > 60) c = "medium";
+                if (p.priorita > 90) c = "high";
+                const row = document.createElement("tr");
+                row.className = c;
+                row.innerHTML = `<td>${i+1}</td><td>${p.nome}</td>
+      <td><input type="number" min="0" max="10" value="${p.gravita}" onchange="aggiornaGravita(${p.id},this.value)"></td>
+      <td>${p.tempo.toFixed(1)}</td><td>${p.priorita.toFixed(0)}</td>
+      <td><button class="remove-btn" onclick="rimuoviPaziente(${p.id})">Visitato</button></td>`;
+                tbody.appendChild(row);
+            });
+        }
+
+        function mostraAlert(flag) {
+            document.getElementById("alertCritico").style.display = flag ? "block" : "none";
+        }
+
+        setInterval(aggiornaSistema, 1000);
+        aggiornaSistema();
+    </script>
+</body>
+
+</html>
